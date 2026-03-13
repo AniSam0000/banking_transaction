@@ -123,3 +123,19 @@ If any step fails, the transaction is rolled back.
 -Transaction failures
 
 -Implemented using Nodemailer with Gmail OAuth2.
+
+## 🗄 Database Collections
+
+The system uses the following collections:
+
+users → stores user credentials
+
+accounts → user bank accounts
+
+transactions → transaction metadata
+
+ledger → immutable debit/credit entries
+
+tokenBlackList → invalidated tokens
+
+
