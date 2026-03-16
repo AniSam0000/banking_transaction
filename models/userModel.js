@@ -17,12 +17,17 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       required: [true, "Name is required for creating an account"],
+      immutable: true,
     },
     password: {
       type: String,
       required: [true, "Password is required for creating an account"],
       minlen: [6, "Password should contain more than 6 characters"],
       select: false,
+    },
+    phone: {
+      type: Number,
+      required: [true, "Phone number is required for creating a user"],
     },
     systemUser: {
       type: Boolean,
