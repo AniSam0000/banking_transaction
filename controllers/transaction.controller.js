@@ -22,6 +22,8 @@ import pool from "../config/db.js";
 export const createTransaction = async (req, res) => {
   const { fromAccount, toAccount, amount, idempotencyKey } = req.body;
 
+  const client = await pool.connect();
+
   try {
     // Check for missing details
 
@@ -41,13 +43,28 @@ export const createTransaction = async (req, res) => {
         message: "Cannot transfer to same account",
       });
     }
-    
+
+    // Start a transaction
+    await client.query("BEGIN");
+
     // Getting the details of requesting account
-    const fromUserAccount = await accountModel.findOne({ _id: fromAccount });
+    const fromUserAccount = await client.query(
+      `
+      SELECT * FROM accounts WHERE id = $1 AND user_id = $2
+    `,
+      [fromAccount, req.user.id],
+    );
 
-    const toUserAccount = await accountModel.findOne({ _id: toAccount });
+    const toUserAccount = await client.query(
+      `
+      SELECT * FROM accounts WHERE id = $1
+    `,
+      [toAccount],
+    );
 
-    if (!fromUserAccount || !toUserAccount) {
+    if (!fromUserAccount.rows[0] || !toUserAccount.rows[0]) {
+      await client.query("ROLLBACK");
+      client.release();
       return res.status(401).json({
         message: "Invalid From Account or To account",
       });
@@ -57,31 +74,38 @@ export const createTransaction = async (req, res) => {
      * 2. Validate idempotency key
      */
 
-    const isTransactionAlreadyExist = await transactionModel.findOne({
-      idempotencyKey: idempotencyKey,
-    });
+    const isTransactionAlreadyExist = await client.query(
+      `
+      SELECT * FROM transactions WHERE idempotency_key = $1
+    `,
+      [idempotencyKey],
+    );
 
-    if (isTransactionAlreadyExist) {
-      if (isTransactionAlreadyExist.status === "COMPLETED") {
+    // If transaction already exists, we need to check the status of the transaction and respond accordingly
+    if (isTransactionAlreadyExist.rows[0]) {
+      await client.query("ROLLBACK");
+      client.release();
+
+      if (isTransactionAlreadyExist.rows[0].status === "COMPLETED") {
         return res.status(200).json({
           message: "Transaction already processed",
-          transaction: isTransactionAlreadyExist,
+          transaction: isTransactionAlreadyExist.rows[0],
         });
       }
 
-      if (isTransactionAlreadyExist.status === "PENDING") {
+      if (isTransactionAlreadyExist.rows[0].status === "PENDING") {
         return res.status(200).json({
           message: "Transaction is still processing",
         });
       }
 
-      if (isTransactionAlreadyExist.status === "FAILED") {
+      if (isTransactionAlreadyExist.rows[0].status === "FAILED") {
         return res.status(500).json({
           message: "Transaction failed please retry again",
         });
       }
 
-      if (isTransactionAlreadyExist.status === "REVERSED") {
+      if (isTransactionAlreadyExist.rows[0].status === "REVERSED") {
         return res.status(500).json({
           message: "Transaction is reversed",
         });
@@ -92,9 +116,11 @@ export const createTransaction = async (req, res) => {
      */
 
     if (
-      fromUserAccount.status !== "ACTIVE" ||
-      toUserAccount.status !== "ACTIVE"
+      fromUserAccount.rows[0].status !== "ACTIVE" ||
+      toUserAccount.rows[0].status !== "ACTIVE"
     ) {
+      await client.query("ROLLBACK");
+      client.release();
       return res.status(400).json({
         message:
           "Both fromAccount and toAccount must be ACTIVE to process transaction",
@@ -105,208 +131,113 @@ export const createTransaction = async (req, res) => {
      * 4) Derive sender balance from ledger
      */
 
-    const balance = await fromUserAccount.getBalance();
+    const balance = await client.query(
+      `
+      SELECT COALESCE(
+        SUM(
+          CASE 
+            WHEN TYPE = 'CREDIT' THEN amount
+            WHEN TYPE = 'DEBIT' THEN -amount
+          END
+        ),
+        0
+      ) as balance
+       FROM ledger_entries
+       WHERE account_id = $1
+      `,
+      [fromAccount],
+    );
 
-    if (balance < amount) {
+    const currbalance = parseFloat(balance.rows[0].balance);
+
+    if (currbalance < amount) {
+      await client.query("ROLLBACK");
+      client.release();
       return res.status(400).json({
-        message: `Insufficient Balance. Current balance is ${balance} . Requested amount is ${amount}`,
+        message: `Insufficient Balance. Current balance is ${currbalance} . Requested amount is ${amount}`,
       });
     }
 
-    let transaction;
-    const session = await mongoose.startSession();
-    try {
-      /**
-       * 5) CREATE Transaction
-       */
-      session.startTransaction();
+    /**
+     * 5) CREATE Transaction
+     */
+    const insertTxRes = await client.query(
+      `
+      INSERT INTO transactions (from_account, to_account, amount, idempotency_key, status)
+      VALUES ($1, $2, $3, $4, 'PENDING')
+      RETURNING *;
+    `,
+      [fromAccount, toAccount, amount, idempotencyKey],
+    );
 
-      transaction = (
-        await transactionModel.create(
-          [
-            {
-              fromAccount: fromAccount,
-              toAccount: toAccount,
-              amount: amount,
-              idempotencyKey: idempotencyKey,
-              status: "PENDING",
-            },
-          ],
-          { session },
-        )
-      )[0];
-      console.log(transaction);
+    const transaction = insertTxRes.rows[0];
 
-      await ledgerModel.insertMany(
-        [
-          {
-            account: fromAccount,
-            amount,
-            transaction: transaction._id,
-            type: "DEBIT",
-          },
-          {
-            account: toAccount,
-            amount,
-            transaction: transaction._id,
-            type: "CREDIT",
-          },
-        ],
-        { session },
-      );
+    /**
+     * 6 & 7) Create DEBIT and CREDIT ledger entries
+     */
+    await client.query(
+      `
+      INSERT INTO ledger_entries (account_id, amount, transaction_id, type)
+      VALUES 
+        ($1, $2, $3, 'DEBIT'),
+        ($4, $5, $6, 'CREDIT');
+    `,
+      [
+        fromAccount,amount,transaction.id, // Debit entry
+        toAccount,amount,transaction.id, // Credit entry
+      ],
+    );
 
-      await transactionModel.findOneAndUpdate(
-        { _id: transaction._id },
-        { status: "COMPLETED" },
-        { session },
-      );
+    /**
+     * 8) Mark transaction COMPLETED
+     */
+    const updateTxRes = await client.query(
+      `
+      UPDATE transactions 
+      SET status = 'COMPLETED' 
+      WHERE id = $1
+      RETURNING *;
+    `,
+      [transaction.id],
+    );
 
-      await session.commitTransaction();
+    const completedTransaction = updateTxRes.rows[0];
 
-      // End of session
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        message: "Transaction error",
-      });
-    } finally {
-      await session.endSession();
-    }
+    /**
+     * 9) Commit PG transaction
+     */
+    await client.query("COMMIT");
+    client.release(); // Return client to pool
 
     /**
      * Send email notification
      */
 
-    try {
-      await sendTransactionEmail(
-        req.user.email,
-        req.user.name,
-        amount,
-        toAccount,
-      );
-    } catch (err) {
-      console.log("Email failed but transaction succeeded");
-    }
+    // try {
+    //   await sendTransactionEmail(
+    //     req.user.email,
+    //     req.user.name,
+    //     amount,
+    //     toAccount,
+    //   );
+    // } catch (err) {
+    //   console.log("Email failed but transaction succeeded");
+    // }
 
     res.status(200).json({
       message: "Transaction completed successfully",
-      transaction: transaction,
+      transaction: completedTransaction,
     });
   } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackErr) {
+      // Catch silently if transaction never started
+    }
+    client.release();
     return res.status(400).json({
       message: error.message,
     });
   }
 };
 
-export const createInitialFundTransaction = async (req, res) => {
-  const session = await mongoose.startSession();
-
-  try {
-    const { toAccount, amount, idempotencyKey } = req.body;
-
-    if (!toAccount || !amount || !idempotencyKey) {
-      return res.status(400).json({
-        message: "Missing required fields",
-      });
-    }
-
-    if (amount <= 0) {
-      return res.status(400).json({
-        message: "Amount must be greater than zero",
-      });
-    }
-    // Checking if transaction already exists or not
-    // So that we don't do the same transaction again
-    const existingTransaction = await transactionModel.findOne({
-      idempotencyKey,
-    });
-
-    if (existingTransaction) {
-      return res.status(200).json({
-        message: "Transaction already processed",
-        transaction: existingTransaction,
-      });
-    }
-
-    const toUserAccount = await accountModel.findById(toAccount);
-
-    if (!toUserAccount) {
-      return res.status(400).json({
-        message: "Invalid account",
-      });
-    }
-
-    const fromUserAccount = await accountModel.findOne({
-      user: req.user._id,
-    });
-
-    if (!fromUserAccount) {
-      return res.status(400).json({
-        message: "System user account not found",
-      });
-    }
-
-    session.startTransaction();
-
-    // Create transaction document
-    const transaction = await transactionModel.create({
-      fromAccount: fromUserAccount._id,
-      toAccount,
-      amount,
-      idempotencyKey,
-      status: "PENDING",
-    });
-
-    //Debit entry
-    const debitLedgerEntry = await ledgerModel.create(
-      [
-        {
-          account: fromUserAccount._id,
-          transaction: transaction._id,
-          type: "DEBIT",
-          amount,
-        },
-      ],
-      { session },
-    );
-
-    // Credit entry
-    const creditLedgerEntry = await ledgerModel.create(
-      [
-        {
-          account: toAccount,
-          transaction: transaction._id,
-          type: "CREDIT",
-          amount,
-        },
-      ],
-      { session },
-    );
-
-    await transactionModel.findOneAndUpdate(
-      { _id: transaction._id },
-      { status: "COMPLETED" },
-      { session },
-    );
-    // Saving transaction
-
-    await session.commitTransaction();
-
-    return res.status(201).json({
-      message: "Initial funds transaction completed successfully",
-      transaction: transaction,
-    });
-  } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
-    session.endSession();
-    return res.status(404).json({
-      message: error,
-    });
-  } finally {
-    session.endSession();
-  }
-};

@@ -15,15 +15,3 @@ const router = express.Router();
  */
 router.post("/", authMiddleware, createTransaction);
 
-/**
- * - POST /api/transactions/system/initial-funds
- * - Create initial funds transaction from system user
- */
-
-router.post(
-  "/system/initial-funds",
-  authMiddleware,
-  authSystemUserMiddleware,
-  createInitialFundTransaction,
-);
-export default router;

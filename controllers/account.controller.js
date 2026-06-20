@@ -34,7 +34,7 @@ export const getUserAccountController = async (req, res) => {
   try {
     const accounts = await pool.query(
       "SELECT * FROM accounts WHERE user_id = $1",
-      [req.user._id]
+      [req.user.id]
     );
 
     if (accounts.rows.length === 0) {
@@ -63,7 +63,7 @@ export const getAccountBalanceController = async (req, res) => {
 
     const account = await pool.query(
       "SELECT * FROM accounts WHERE id = $1 AND user_id = $2",
-      [accountId, req.user._id]
+      [accountId, req.user.id]
     );
 
     if (account.rows.length === 0) {

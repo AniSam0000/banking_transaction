@@ -32,7 +32,7 @@ async function authMiddleware(req, res, next) {
       });
     }
 
-    req.user = user;
+    req.user = user.rows[0];
     return next();
   } catch (error) {
     console.log(error.message);
