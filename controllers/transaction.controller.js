@@ -1,8 +1,8 @@
-import ledgerModel from "../models/ledger.model.js";
-import transactionModel from "../models/transaction.model.js";
-import accountModel from "../models/account.model.js";
-import mongoose from "mongoose";
-import { sendTransactionEmail } from "../services/nodemailer.services.js";
+// import ledgerModel from "../models/ledger.model.js";
+// import transactionModel from "../models/transaction.model.js";
+// import accountModel from "../models/account.model.js";
+// import mongoose from "mongoose";
+import pool from "../config/db.js";
 
 /**
  * - Create a new transaction
@@ -41,6 +41,7 @@ export const createTransaction = async (req, res) => {
         message: "Cannot transfer to same account",
       });
     }
+    
     // Getting the details of requesting account
     const fromUserAccount = await accountModel.findOne({ _id: fromAccount });
 

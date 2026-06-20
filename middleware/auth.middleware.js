@@ -1,5 +1,6 @@
 import userModel from "../models/userModel.js";
 import tokenBlackListModel from "../models/blackList.model.js";
+import pool from "../config/db.js";
 
 import jwt from "jsonwebtoken";
 
@@ -12,22 +13,29 @@ async function authMiddleware(req, res, next) {
     });
   }
 
-  // To check if the token is blacklisted or not
-  const isBlackListed = await tokenBlackListModel.findOne({ token });
+  // // To check if the token is blacklisted or not
+  // const isBlackListed = await tokenBlackListModel.findOne({ token });
 
-  if (isBlackListed) {
-    return res.status(401).json({
-      message: "Token is blacklisted",
-    });
-  }
+  // if (isBlackListed) {
+  //   return res.status(401).json({
+  //     message: "Token is blacklisted",
+  //   });
+  // }
   try {
     const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await userModel.findById(decoded.userId);
+    const user = await pool.query("SELECT * FROM users WHERE id = $1", [decoded.userId]);
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
 
     req.user = user;
     return next();
   } catch (error) {
+    console.log(error.message);
     res.status(401).json({
       message: "Unauthorized access , token is missing",
     });

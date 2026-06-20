@@ -1,2 +1,18 @@
+# Environment
 .env
+
+# Dependencies
 node_modules
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
