@@ -1,7 +1,3 @@
-// import ledgerModel from "../models/ledger.model.js";
-// import transactionModel from "../models/transaction.model.js";
-// import accountModel from "../models/account.model.js";
-// import mongoose from "mongoose";
 import pool from "../config/db.js";
 
 /**
@@ -183,8 +179,12 @@ export const createTransaction = async (req, res) => {
         ($4, $5, $6, 'CREDIT');
     `,
       [
-        fromAccount,amount,transaction.id, // Debit entry
-        toAccount,amount,transaction.id, // Credit entry
+        fromAccount,
+        amount,
+        transaction.id, // Debit entry
+        toAccount,
+        amount,
+        transaction.id, // Credit entry
       ],
     );
 
@@ -240,4 +240,3 @@ export const createTransaction = async (req, res) => {
     });
   }
 };
-

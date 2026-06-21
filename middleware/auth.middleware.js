@@ -1,5 +1,3 @@
-import userModel from "../models/userModel.js";
-import tokenBlackListModel from "../models/blackList.model.js";
 import pool from "../config/db.js";
 
 import jwt from "jsonwebtoken";
@@ -24,7 +22,9 @@ async function authMiddleware(req, res, next) {
   try {
     const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await pool.query("SELECT * FROM users WHERE id = $1", [decoded.userId]);
+    const user = await pool.query("SELECT * FROM users WHERE id = $1", [
+      decoded.userId,
+    ]);
 
     if (user.rows.length === 0) {
       return res.status(404).json({

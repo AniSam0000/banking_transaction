@@ -1,10 +1,5 @@
 import express from "express";
-
-import { authSystemUserMiddleware } from "../middleware/systemuser.middleware.js";
-import {
-  createInitialFundTransaction,
-  createTransaction,
-} from "../controllers/transaction.controller.js";
+import { createTransaction } from "../controllers/transaction.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -15,3 +10,4 @@ const router = express.Router();
  */
 router.post("/", authMiddleware, createTransaction);
 
+export default router;

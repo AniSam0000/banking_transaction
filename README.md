@@ -1,97 +1,117 @@
 # 🏦 Ledger-Based Banking Transaction API
 
-A ledger-based banking transaction backend built with **Node.js**, **Express**, and **MongoDB**. Supports user authentication, multi-account management, atomic fund transfers with idempotency, and email notifications.
+<div align="center">
 
-## Features
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-v5-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-C5F74F?logo=drizzle&logoColor=black)
+![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtoken&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-- User authentication with JWT
-- Multi-account support per user
-- Ledger-based accounting system
-- Atomic fund transfers using MongoDB transactions
-- Idempotent transactions (duplicate request protection)
-- Real-time balance calculation via aggregation
-- Secure password hashing with bcrypt
-- Email notifications for registration and transfers
-- Token blacklist for secure logout
+A ledger-based banking transaction backend built with **Node.js**, **Express**, and **PostgreSQL**. Supports user authentication, multi-account management, atomic fund transfers with idempotency, and email notifications.
+
+</div>
 
 ---
 
-## Ledger-Based Accounting System
+## ✨ Features
 
-Instead of storing account balances directly, the system records
-immutable ledger entries for every transaction.
+- 🔐 **User authentication** with JWT
+- 👥 **Multi-account** support per user
+- 📒 **Ledger-based** accounting system
+- ⚡ **Atomic fund transfers** using PostgreSQL transactions
+- 🔁 **Idempotent transactions** (duplicate request protection)
+- 📊 **Real-time balance** calculation via aggregation
+- 🔒 **Secure password** hashing with bcrypt
+- 📧 **Email notifications** for registration and transfers
+- 🚫 **Token blacklist** for secure logout
+
+---
+
+## 📒 Ledger-Based Accounting System
+
+Instead of storing account balances directly, the system records immutable ledger entries for every transaction.
 
 Each transfer creates:
 
-• one DEBIT entry (source account)
-• one CREDIT entry (destination account)
+- 🔴 **DEBIT** entry — source account
+- 🟢 **CREDIT** entry — destination account
 
 Balance is computed as:
 
+```
 Balance = Σ CREDIT − Σ DEBIT
+```
 
 This ensures strong auditability and prevents data inconsistency.
 
-## Tech Stack
+---
 
-| Layer         | Technology                |
-| ------------- | ------------------------- |
-| Runtime       | Node.js (ESM)             |
-| Framework     | Express v5                |
-| Database      | MongoDB + Mongoose        |
-| Auth          | JWT + Cookie              |
-| Email         | Nodemailer (Gmail OAuth2) |
-| Password Hash | bcryptjs                  |
+## 🛠 Tech Stack
+
+| Layer         | Technology               |
+| ------------- | ------------------------ |
+| ⚙️ Runtime    | Node.js (ESM)            |
+| 🌐 Framework  | Express v5               |
+| 🗄️ Database   | PostgreSQL + Drizzle ORM |
+| 🔑 Auth       | JWT + Cookie             |
+| 📧 Email      | Nodemailer (Gmail OAuth2)|
+| 🔐 Hash       | bcryptjs                 |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 banking_transaction/
-├── app.js                          # Express app setup & route mounting
-├── server.js                       # Entry point — starts server on port 3000
-├── package.json
+├── app.js                          # ⚙️ Express app setup & route mounting
+├── server.js                       # 🚀 Entry point — starts server on port 3000
+├── package.json                    # 📦 Dependencies & scripts
 │
 ├── config/
-│   └── db.js                       # MongoDB connection
+│   ├── db.js                       # 🔌 PostgreSQL connection (pg + Drizzle ORM)
+│   └── schema/
+│       ├── index.js                # 📤 Barrel export for all schemas
+│       ├── users.js                # 👤 Users table definition
+│       ├── accounts.js             # 💳 Accounts table definition
+│       ├── ledger.js               # 📋 Ledger entries table (DEBIT / CREDIT)
+│       └── transactions.js         # 🔄 Transactions table with idempotency key
 │
 ├── controllers/
-│   ├── auth.controller.js          # Register, Login, Logout, Update
-│   ├── account.controller.js       # Create account, Get accounts, Get balance
-│   └── transaction.controller.js   # Transfer funds, Initial system funds
+│   ├── auth.controller.js          # 🔐 Register, Login, Logout, Update
+│   ├── account.controller.js       # 💰 Create account, Get accounts, Get balance
+│   └── transaction.controller.js   # 💸 Transfer funds, Initial system funds
+│
+├── drizzle/                        # 🗃️ Generated migration files
+│   ├── 0000_parallel_virginia_dare.sql
+│   └── meta/
+│
+├── drizzle.config.js               # ⚙️ Drizzle Kit configuration
 │
 ├── middleware/
-│   ├── auth.middleware.js          # JWT verification + blacklist check
-│   └── systemuser.middleware.js    # Restricts route to system users only
-│
-├── models/
-│   ├── userModel.js               # User schema (name is immutable)
-│   ├── account.model.js           # Account schema + getBalance() aggregation
-│   ├── transaction.model.js       # Transaction schema with idempotency key
-│   ├── ledger.model.js            # Immutable ledger entries (DEBIT / CREDIT)
-│   └── blackList.model.js         # Blacklisted JWT tokens (TTL: 3 days)
+│   └── auth.middleware.js          # 🛡️ JWT verification + blacklist check
 │
 ├── routes/
-│   ├── auth.routes.js
-│   ├── account.routes.js
-│   └── transaction.routes.js
+│   ├── auth.routes.js              # 🚪 Auth endpoints
+│   ├── account.routes.js           # 💳 Account endpoints
+│   └── transaction.routes.js       # 💸 Transaction endpoints
 │
 └── services/
-    └── nodemailer.services.js      # Registration & transaction email senders
+    └── nodemailer.services.js      # 📧 Registration & transaction email senders
 ```
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 
-- Node.js >= 18
-- MongoDB instance (local or Atlas)
-- Gmail account with OAuth2 credentials for email
+- ✅ Node.js >= 18
+- ✅ PostgreSQL instance (local or cloud — e.g. Neon, Supabase, RDS)
+- ✅ Gmail account with OAuth2 credentials for email
 
-### Installation
+### 📦 Installation
 
 ```bash
 git clone https://github.com/AniSam0000/banking_transaction.git
@@ -99,12 +119,13 @@ cd banking_transaction
 npm install
 ```
 
-### Environment Variables
+### 🔐 Environment Variables
 
 Create a `.env` file in the project root:
 
 ```env
-MONGODB_URI=mongodb://localhost:27017
+PG_URL=postgresql://user:password@host:5432/dbname
+
 JWT_SECRET=your_jwt_secret_here
 
 # Gmail OAuth2 (for Nodemailer)
@@ -114,7 +135,22 @@ CLIENT_SECRET=your_google_client_secret
 REFRESH_TOKEN=your_google_refresh_token
 ```
 
-### Running the Server
+### 🗃️ Database Setup
+
+Push the Drizzle schema to your PostgreSQL database:
+
+```bash
+npm run db:push
+```
+
+Or generate & run migrations:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+### ▶️ Running the Server
 
 ```bash
 # Production
@@ -122,89 +158,97 @@ npm start
 
 # Development (with auto-reload via nodemon)
 npm run server
+npm run dev
 ```
 
-Server runs at `http://localhost:3000`
+Server runs at **`http://localhost:3000`** 🎯
 
 ---
 
-## Data Models
+## 🗄️ Data Models
 
-### User
+All tables use **UUID** primary keys with auto-generated values.
 
-| Field      | Type    | Notes                              |
-| ---------- | ------- | ---------------------------------- |
-| email      | String  | Unique, lowercase, validated       |
-| name       | String  | **Immutable** after creation       |
-| password   | String  | bcrypt hashed, hidden by default   |
-| phone      | Number  | Required                           |
-| systemUser | Boolean | Hidden, immutable, default `false` |
+### 👤 User (`users`)
 
-### Account
+| Column       | Type           | Notes                            |
+| ------------ | -------------- | -------------------------------- |
+| `id`         | `UUID (PK)`    | Auto-generated                   |
+| `email`      | `varchar(255)` | ✅ Unique, lowercase             |
+| `name`       | `varchar(100)` | 🔒 **Immutable** after creation  |
+| `password`   | `varchar(255)` | 🔐 bcrypt hashed                 |
+| `phone`      | `varchar(20)`  | Required                         |
+| `systemUser` | `boolean`      | Default `false`                  |
+| `createdAt`  | `timestamp`    | Auto-set on insert               |
+| `updatedAt`  | `timestamp`    | Auto-updated                     |
 
-| Field    | Type     | Notes                            |
-| -------- | -------- | -------------------------------- |
-| user     | ObjectId | Ref → User                       |
-| status   | String   | `ACTIVE` \| `FROZEN` \| `CLOSED` |
-| currency | String   | Default `INR`                    |
+### 💳 Account (`accounts`)
 
-> Balance is **not stored** — it is computed on demand by aggregating ledger entries (`totalCredit - totalDebit`).
+| Column      | Type           | Notes                                  |
+| ----------- | -------------- | -------------------------------------- |
+| `id`        | `UUID (PK)`    | Auto-generated                         |
+| `userId`    | `UUID (FK)`    | 🔗 Ref → `users.id`                    |
+| `status`    | `varchar(20)`  | `ACTIVE` \| `FROZEN` \| `CLOSED`       |
+| `currency`  | `varchar(10)`  | Default `INR`                          |
+| `createdAt` | `timestamp`    | Auto-set on insert                     |
+| `updatedAt` | `timestamp`    | Auto-updated                           |
 
-### Transaction
+> 💡 Balance is **not stored** — it is computed on demand by aggregating ledger entries (`totalCredit - totalDebit`).
 
-| Field          | Type     | Notes                                              |
-| -------------- | -------- | -------------------------------------------------- |
-| fromAccount    | ObjectId | Ref → Account                                      |
-| toAccount      | ObjectId | Ref → Account                                      |
-| amount         | Number   | Min: 1                                             |
-| status         | String   | `PENDING` \| `COMPLETED` \| `FAILED` \| `REVERSED` |
-| idempotencyKey | String   | Unique — prevents duplicate processing             |
+### 🔄 Transaction (`transactions`)
 
-### Ledger
+| Column           | Type                           | Notes                                             |
+| ---------------- | ------------------------------ | ------------------------------------------------- |
+| `id`             | `UUID (PK)`                    | Auto-generated                                    |
+| `fromAccount`    | `UUID (FK)`                    | 🔗 Ref → `accounts.id`                            |
+| `toAccount`      | `UUID (FK)`                    | 🔗 Ref → `accounts.id`                            |
+| `amount`         | `numeric(15,2)`                | Minimum: 1                                        |
+| `status`         | `transaction_status` (enum)    | `PENDING` \| `COMPLETED` \| `FAILED` \| `REVERSED` |
+| `idempotencyKey` | `varchar(255)`                 | 🆔 Unique — prevents duplicate processing          |
+| `createdAt`      | `timestamp`                    | Auto-set on insert                                |
+| `updatedAt`      | `timestamp`                    | Auto-updated                                      |
 
-| Field       | Type     | Notes                         |
-| ----------- | -------- | ----------------------------- |
-| account     | ObjectId | Ref → Account (immutable)     |
-| transaction | ObjectId | Ref → Transaction (immutable) |
-| type        | String   | `CREDIT` \| `DEBIT`           |
-| amount      | Number   | Immutable                     |
+### 📋 Ledger (`ledger_entries`)
 
-> All ledger entries are **fully immutable** — no update or delete hooks are allowed at the schema level.
+| Column          | Type                   | Notes                           |
+| --------------- | ---------------------- | ------------------------------- |
+| `id`            | `UUID (PK)`            | Auto-generated                  |
+| `accountId`     | `UUID (FK)`            | 🔗 Ref → `accounts.id`          |
+| `transactionId` | `UUID (FK)`            | 🔗 Ref → `transactions.id`      |
+| `type`          | `ledger_type` (enum)   | `CREDIT` 🟢 \| `DEBIT` 🔴       |
+| `amount`        | `numeric(15,2)`        | 🔒 Immutable                    |
+| `createdAt`     | `timestamp`            | Auto-set on insert              |
 
-### Token Blacklist
-
-| Field | Type   | Notes                                      |
-| ----- | ------ | ------------------------------------------ |
-| token | String | Unique; auto-expires in 3 days (TTL index) |
-
----
-
-## API Reference
-
-All protected routes require a JWT token either as:
-
-- Cookie: `token`
-- Header: `Authorization: Bearer <token>`
+> 🔒 All ledger entries are **fully immutable** — no update or delete operations are permitted.
 
 ---
 
-| Method | Endpoint                               | Description         |
-| ------ | -------------------------------------- | ------------------- |
-| POST   | /api/auth/register                     | Register new user   |
-| POST   | /api/auth/login                        | Login user          |
-| POST   | /api/auth/logout                       | Logout user         |
-| PUT    | /api/auth/update                       | Update user profile |
-| POST   | /api/accounts                          | Create account      |
-| GET    | /api/accounts/get-accounts             | List user accounts  |
-| GET    | /api/accounts/balance/:accountId       | Get balance         |
-| POST   | /api/transactions                      | Transfer funds      |
-| POST   | /api/transactions/system/initial-funds | Seed initial funds  |
+## 📡 API Reference
 
-### Auth `/api/auth`
+> 🔐 All protected routes require a JWT token either as:
+> - **Cookie**: `token`
+> - **Header**: `Authorization: Bearer <token>`
 
-#### `POST /api/auth/register`
+### 🌐 Endpoints Overview
 
-Register a new user.
+| Method | Endpoint                               | Description         | Auth |
+| ------ | -------------------------------------- | ------------------- | ---- |
+| `POST` | `/api/auth/register`                   | Register new user   | ❌   |
+| `POST` | `/api/auth/login`                      | Login user          | ❌   |
+| `POST` | `/api/auth/logout`                     | Logout user         | ✅   |
+| `PUT`  | `/api/auth/update`                     | Update user profile | ✅   |
+| `POST` | `/api/accounts`                        | Create account      | ✅   |
+| `GET`  | `/api/accounts/get-accounts`           | List user accounts  | ✅   |
+| `GET`  | `/api/accounts/balance/:accountId`     | Get balance         | ✅   |
+| `POST` | `/api/transactions`                    | Transfer funds      | ✅   |
+| `POST` | `/api/transactions/system/initial-funds` | Seed initial funds | ✅🔑 |
+
+---
+
+### 🔐 Auth — `/api/auth`
+
+<details>
+<summary><code>POST</code> <code>/api/auth/register</code> — Register a new user</summary>
 
 **Body**
 
@@ -221,18 +265,17 @@ Register a new user.
 
 ```json
 {
-  "user": { "_id": "...", "email": "user@example.com", "name": "John Doe" },
+  "user": { "id": "uuid", "email": "user@example.com", "name": "John Doe" },
   "token": "<jwt>"
 }
 ```
 
-> Also sends a welcome email to the registered address.
+> 📧 Also sends a welcome email to the registered address.
 
----
+</details>
 
-#### `POST /api/auth/login`
-
-Login with email and password.
+<details>
+<summary><code>POST</code> <code>/api/auth/login</code> — Login with email and password</summary>
 
 **Body**
 
@@ -248,7 +291,7 @@ Login with email and password.
 ```json
 {
   "user": {
-    "_id": "...",
+    "id": "uuid",
     "email": "user@example.com",
     "name": "John Doe",
     "phone": 9876543210
@@ -257,11 +300,10 @@ Login with email and password.
 }
 ```
 
----
+</details>
 
-#### `POST /api/auth/logout`
-
-🔒 Protected
+<details>
+<summary><code>POST</code> <code>/api/auth/logout</code> — 🔒 Logout user</summary>
 
 Invalidates the current token.
 
@@ -271,11 +313,10 @@ Invalidates the current token.
 { "message": "Logged out successfully" }
 ```
 
----
+</details>
 
-#### `PUT /api/auth/update`
-
-🔒 Protected
+<details>
+<summary><code>PUT</code> <code>/api/auth/update</code> — 🔒 Update user profile</summary>
 
 Update email, phone, or password. `currPassword` is always required.
 
@@ -296,13 +337,14 @@ Update email, phone, or password. `currPassword` is always required.
 { "message": "User details updated successfully" }
 ```
 
+</details>
+
 ---
 
-### Accounts `/api/accounts`
+### 💳 Accounts — `/api/accounts`
 
-#### `POST /api/accounts/`
-
-🔒 Protected
+<details>
+<summary><code>POST</code> <code>/api/accounts</code> — 🔒 Create a new account</summary>
 
 Creates a new bank account for the authenticated user.
 
@@ -311,19 +353,18 @@ Creates a new bank account for the authenticated user.
 ```json
 {
   "account": {
-    "_id": "...",
-    "user": "...",
+    "id": "uuid",
+    "user_id": "uuid",
     "status": "ACTIVE",
     "currency": "INR"
   }
 }
 ```
 
----
+</details>
 
-#### `GET /api/accounts/get-accounts`
-
-🔒 Protected
+<details>
+<summary><code>GET</code> <code>/api/accounts/get-accounts</code> — 🔒 List user accounts</summary>
 
 Returns all accounts belonging to the authenticated user.
 
@@ -331,15 +372,14 @@ Returns all accounts belonging to the authenticated user.
 
 ```json
 {
-  "accounts": [{ "_id": "...", "status": "ACTIVE", "currency": "INR" }]
+  "accounts": [{ "id": "uuid", "status": "ACTIVE", "currency": "INR" }]
 }
 ```
 
----
+</details>
 
-#### `GET /api/accounts/balance/:accountId`
-
-🔒 Protected
+<details>
+<summary><code>GET</code> <code>/api/accounts/balance/:accountId</code> — 🔒 Get balance</summary>
 
 Returns the computed balance for an account.
 
@@ -347,18 +387,19 @@ Returns the computed balance for an account.
 
 ```json
 {
-  "accountId": "...",
+  "accountId": "uuid",
   "balance": 5000
 }
 ```
 
+</details>
+
 ---
 
-### Transactions `/api/transactions`
+### 💸 Transactions — `/api/transactions`
 
-#### `POST /api/transactions/`
-
-🔒 Protected
+<details>
+<summary><code>POST</code> <code>/api/transactions</code> — 🔒 Transfer funds</summary>
 
 Transfer funds between two accounts.
 
@@ -378,24 +419,23 @@ Transfer funds between two accounts.
 ```json
 {
   "message": "Transaction completed successfully",
-  "transaction": { "_id": "...", "status": "COMPLETED", "amount": 500 }
+  "transaction": { "id": "uuid", "status": "COMPLETED", "amount": 500 }
 }
 ```
 
 **Idempotency Behavior**
 
-| Existing Status | HTTP | Response message                 |
-| --------------- | ---- | -------------------------------- |
-| `COMPLETED`     | 200  | Transaction already processed    |
-| `PENDING`       | 200  | Transaction is still processing  |
-| `FAILED`        | 500  | Transaction failed, please retry |
-| `REVERSED`      | 500  | Transaction is reversed          |
+| Existing Status | HTTP Status | Response Message                    |
+| :-------------- | :---------- | :---------------------------------- |
+| `COMPLETED`     | `200`       | Transaction already processed       |
+| `PENDING`       | `200`       | Transaction is still processing     |
+| `FAILED`        | `500`       | Transaction failed, please retry    |
+| `REVERSED`      | `500`       | Transaction is reversed             |
 
----
+</details>
 
-#### `POST /api/transactions/system/initial-funds`
-
-🔒 Protected + System User only
+<details>
+<summary><code>POST</code> <code>/api/transactions/system/initial-funds</code> — 🔒🔑 System only</summary>
 
 Seeds initial funds into a user account from the system account. Only callable by users with `systemUser: true`.
 
@@ -414,106 +454,151 @@ Seeds initial funds into a user account from the system account. Only callable b
 ```json
 {
   "message": "Initial funds transaction completed successfully",
-  "transaction": { "_id": "...", "status": "COMPLETED" }
+  "transaction": { "id": "uuid", "status": "COMPLETED" }
 }
 ```
 
+</details>
+
 ---
 
-## Data Flow
+## 🔄 Data Flow
 
-### User Registration Flow
+### 📝 User Registration Flow
 
 ```
 POST /api/auth/register
         │
         ▼
-Validate body fields
-        │
-        ▼
-Check if email already exists (userModel)
-        │
-        ▼
-Create user — password auto-hashed by pre-save hook (bcrypt)
-        │
-        ▼
-Sign JWT → set cookie + return token
-        │
-        ▼
-Send welcome email (Nodemailer — async, non-blocking)
+   ┌──────────────┐
+   │ Validate     │
+   │ body fields  │
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │ Check email  │
+   │ uniqueness   │
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │ Create user  │
+   │ (bcrypt hash)│
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │ Sign JWT     │
+   │ Set cookie   │
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │ Send welcome │
+   │ email (async)│
+   └──────────────┘
 ```
 
-### Authentication Flow (Protected Routes)
+### 🛡️ Authentication Flow (Protected Routes)
 
 ```
 Request with cookie/header token
         │
         ▼
-authMiddleware
-  ├─ Token missing?  → 401
-  ├─ Token blacklisted (blackList.model)?  → 401
-  └─ jwt.verify() → decode userId → attach req.user → next()
+   ┌─────────────────────┐
+   │    authMiddleware    │
+   │                      │
+   │  ❓ Token missing?   │──→ 401
+   │                      │
+   │  ❓ Blacklisted?     │──→ 401
+   │                      │
+   │  ✅ jwt.verify()     │
+   └──────┬──────────────┘
+          ▼
+   Attach req.user → next()
 ```
 
-### Fund Transfer Flow (10-step atomic process)
+### 💸 Fund Transfer Flow (10-step atomic process)
 
 ```
 POST /api/transactions/
         │
-1.      ▼
-   Validate: fromAccount, toAccount, amount, idempotencyKey all present
+  1.    ▼
+   ┌────────────────────────┐
+   │ Validate all fields    │
+   │ (from, to, amount, key)│
+   └──────────┬─────────────┘
         │
-2.      ▼
-   Check idempotencyKey — return existing result if duplicate
+  2.    ▼
+   ┌────────────────────────┐
+   │ Check idempotencyKey   │
+   │ Return if duplicate    │
+   └──────────┬─────────────┘
         │
-3.      ▼
-   Verify both accounts exist and are ACTIVE
+  3.    ▼
+   ┌────────────────────────┐
+   │ Verify accounts exist  │
+   │ & are ACTIVE           │
+   └──────────┬─────────────┘
         │
-4.      ▼
-   account.getBalance() — aggregate ledger (totalCredit - totalDebit)
-   Ensure balance ≥ amount
+  4.    ▼
+   ┌────────────────────────┐
+   │ Compute balance via    │
+   │ ledger aggregation     │
+   │ Ensure funds ≥ amount  │
+   └──────────┬─────────────┘
         │
         ▼
-   ┌─── Start MongoDB Session & Transaction ───┐
-5. │  Create Transaction doc (status: PENDING)  │
-6. │  Insert DEBIT ledger entry (fromAccount)   │
-7. │  Insert CREDIT ledger entry (toAccount)    │
-8. │  Update Transaction → status: COMPLETED   │
-9. │  commitTransaction()                       │
-   └────────────────────────────────────────────┘
+   ┌─── Start PostgreSQL Transaction ──────────────────┐
+   │                                                   │
+   │  5.  📝 Create Transaction (status: PENDING)      │
+   │  6.  🔴 Insert DEBIT ledger entry (source)       │
+   │  7.  🟢 Insert CREDIT ledger entry (dest)        │
+   │  8.  ✅ Update Transaction → COMPLETED           │
+   │  9.  💾 commitTransaction()                      │
+   │                                                   │
+   └───────────────────────────────────────────────────┘
         │
-        ▼  (session aborted on any failure above)
-10.
-   Send transaction email (best-effort, non-blocking)
+        ▼  (rollback on any failure)
+ 10.
+   ┌────────────────────────┐
+   │ Send transaction email │
+   │ (best-effort, async)   │
+   └──────────┬─────────────┘
         │
         ▼
    Return transaction object
 ```
 
-### Balance Calculation
+### 📊 Balance Calculation
 
-Balance is never stored. It is derived via MongoDB aggregation on demand:
+Balance is never stored. It is derived via SQL aggregation on demand:
 
 ```
 Balance = Σ CREDIT entries − Σ DEBIT entries
-         (for a given account in the ledger collection)
+         (for a given account in the ledger_entries table)
 ```
 
 ---
 
-## Security
+## 🛡️ Security
 
-- Passwords are hashed with **bcrypt** (10 rounds) via a Mongoose `pre-save` hook.
-- `password` and `systemUser` fields have `select: false` — never returned in queries by default.
-- Logged-out tokens are stored in a **blacklist** collection (TTL-indexed, auto-deleted after 3 days matching JWT expiry).
-- `name` field is **immutable** — cannot be changed after user creation.
-- All ledger entries are **immutable** at the schema level — no update/delete hooks allowed.
-- System-only routes are guarded by a dedicated `authSystemUserMiddleware`.
+- 🔐 Passwords are hashed with **bcrypt** (10 rounds) before persisting.
+- 🔒 `name` field is **immutable** — cannot be changed after user creation.
+- 📋 All ledger entries are **immutable** — no update or delete operations are permitted.
 
-## Future Improvements
 
-- Rate limiting for API endpoints
-- Redis-based job queue for email processing
-- Admin dashboard
-- Transaction history pagination
-- Monitoring with Prometheus/Grafana
+---
+
+## 🔮 Future Improvements
+
+- [ ] 🚦 Rate limiting for API endpoints
+- [ ] 📨 Redis-based job queue for email processing
+- [ ] 📊 Admin dashboard
+- [ ] 📄 Transaction history pagination
+- [ ] 📈 Monitoring with Prometheus/Grafana
+
+---
+
+<div align="center">
+
+Made with ❤️ by [AniSam0000](https://github.com/AniSam0000)
+
+</div>
