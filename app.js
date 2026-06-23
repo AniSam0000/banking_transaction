@@ -6,6 +6,10 @@ import cookieParser from "cookie-parser";
 
 export const app = express();
 
+// It is important to set "trust proxy" to 1, because render uses reverse proxy, 
+// and without this, rate limiting will be based on the IP address of the proxy, not the actual client.
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(cookieParser());
 

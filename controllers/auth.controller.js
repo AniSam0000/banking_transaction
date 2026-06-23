@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { sendRegistrationEmail } from "../services/nodemailer.services.js";
 import pool from "../config/db.js";
+import redisClient from "../config/redis.js";
 
 
 
@@ -204,6 +205,21 @@ export const userLogoutController = async (req, res) => {
         message: "No token provided",
       });
     }
+    // Blacklist the token in Redis using its remaining expiration time (TTL)
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.exp) {
+        const remainingTime = decoded.exp - Math.floor(Date.now() / 1000);
+        if (remainingTime > 0) {
+          await redisClient.set(`bl:${token}`, "true", {
+            EX: remainingTime,
+          });
+        }
+      }
+    } catch (redisError) {
+      console.error("Error blacklisting token in Redis:", redisError);
+    }
+
     res.cookie("token", "", {
       expires: new Date(0),
     });

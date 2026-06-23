@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
-
 import jwt from "jsonwebtoken";
+import redisClient from "../config/redis.js";
 
 async function authMiddleware(req, res, next) {
   const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
@@ -11,18 +11,21 @@ async function authMiddleware(req, res, next) {
     });
   }
 
-  // // To check if the token is blacklisted or not
-  // const isBlackListed = await tokenBlackListModel.findOne({ token });
-
-  // if (isBlackListed) {
-  //   return res.status(401).json({
-  //     message: "Token is blacklisted",
-  //   });
-  // }
+  // Check if the token is blacklisted in Redis
   try {
-    const decoded = await jwt.verify(token, process.env.JWT_SECRET);
+    const isBlacklisted = await redisClient.get(`bl:${token}`);
+    if (isBlacklisted) {
+      return res.status(401).json({
+        message: "Token is blacklisted",
+      });
+    }
+  } catch (redisError) {
+    console.error("Redis blacklist check failed:", redisError);
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await pool.query("SELECT * FROM users WHERE id = $1", [
+    const user = await pool.query("SELECT id,email,name,phone,password FROM users WHERE id = $1", [
       decoded.userId,
     ]);
 
@@ -37,7 +40,7 @@ async function authMiddleware(req, res, next) {
   } catch (error) {
     console.log(error.message);
     res.status(401).json({
-      message: "Unauthorized access , token is missing",
+      message: "Unauthorized access , token is invalid or expired",
     });
   }
 }

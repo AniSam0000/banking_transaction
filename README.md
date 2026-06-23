@@ -25,7 +25,8 @@ A ledger-based banking transaction backend built with **Node.js**, **Express**, 
 - 📊 **Real-time balance** calculation via aggregation
 - 🔒 **Secure password** hashing with bcrypt
 - 📧 **Email notifications** for registration and transfers
-- 🚫 **Token blacklist** for secure logout
+- 🚫 **Redis Token blacklist** for secure logout validation
+- 🚦 **Rate Limiting** via Redis (login & transactions limits)
 
 ---
 
@@ -58,6 +59,8 @@ This ensures strong auditability and prevents data inconsistency.
 | 🔑 Auth       | JWT + Cookie             |
 | 📧 Email      | Nodemailer (Gmail OAuth2)|
 | 🔐 Hash       | bcryptjs                 |
+| ⚡ Cache/Store| Redis (via node-redis)   |
+| 🚦 Rate Limit | express-rate-limit       |
 
 ---
 
@@ -133,6 +136,10 @@ EMAIL_USER=your_gmail@gmail.com
 CLIENT_ID=your_google_client_id
 CLIENT_SECRET=your_google_client_secret
 REFRESH_TOKEN=your_google_refresh_token
+
+# Redis configuration
+REDIS_HOST=your_redis_host
+REDIS_PASSWORD=your_redis_password
 ```
 
 ### 🗃️ Database Setup
@@ -241,7 +248,6 @@ All tables use **UUID** primary keys with auto-generated values.
 | `GET`  | `/api/accounts/get-accounts`           | List user accounts  | ✅   |
 | `GET`  | `/api/accounts/balance/:accountId`     | Get balance         | ✅   |
 | `POST` | `/api/transactions`                    | Transfer funds      | ✅   |
-| `POST` | `/api/transactions/system/initial-funds` | Seed initial funds | ✅🔑 |
 
 ---
 
@@ -587,9 +593,23 @@ Balance = Σ CREDIT entries − Σ DEBIT entries
 
 ---
 
+## 🚦 Rate Limiting & Token Blacklisting
+
+We utilize Redis as a centralized high-performance store for rate limiting and session validation:
+
+### 1. Rate Limiting Rules
+- **Failed Logins**: Max **5 failed login attempts per day** (24-hour window) per IP. Success requests bypass this limit.
+- **Transactions**: Max **2 transaction creation requests per minute** per user ID (falls back to IP address if unauthenticated).
+
+### 2. Token Blacklist System
+- When a user logs out, the JWT is stored in Redis under the key format `bl:<token>`.
+- The Redis key uses a dynamically calculated **Time To Live (TTL)** corresponding to the remaining time before token expiration (`decoded.exp - currentTime`).
+- Any incoming request to protected routes checks the blacklist first, immediately rejecting blocked tokens.
+
+---
+
 ## 🔮 Future Improvements
 
-- [ ] 🚦 Rate limiting for API endpoints
 - [ ] 📨 Redis-based job queue for email processing
 - [ ] 📊 Admin dashboard
 - [ ] 📄 Transaction history pagination
