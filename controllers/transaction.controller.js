@@ -43,22 +43,49 @@ export const createTransaction = async (req, res) => {
     // Start a transaction
     await client.query("BEGIN");
 
-    // Getting the details of requesting account
-    const fromUserAccount = await client.query(
+    // Sort account IDs to prevent deadlocks when locking rows with FOR UPDATE
+    const sortedAccountIds = [fromAccount, toAccount].sort();
+
+    // Lock both accounts in a consistent, sorted order to avoid deadlock
+    const accountLock1 = await client.query(
       `
-      SELECT * FROM accounts WHERE id = $1 AND user_id = $2
+      SELECT * FROM accounts WHERE id = $1 FOR UPDATE
     `,
-      [fromAccount, req.user.id],
+      [sortedAccountIds[0]],
     );
 
-    const toUserAccount = await client.query(
+    const accountLock2 = await client.query(
       `
-      SELECT * FROM accounts WHERE id = $1
+      SELECT * FROM accounts WHERE id = $1 FOR UPDATE
     `,
-      [toAccount],
+      [sortedAccountIds[1]],
     );
 
-    if (!fromUserAccount.rows[0] || !toUserAccount.rows[0]) {
+    const row1 = accountLock1.rows[0];
+    const row2 = accountLock2.rows[0];
+
+    let fromRow = null;
+    let toRow = null;
+
+    if (row1) {
+      if (row1.id === fromAccount) fromRow = row1;
+      else if (row1.id === toAccount) toRow = row1;
+    }
+    if (row2) {
+      if (row2.id === fromAccount) fromRow = row2;
+      else if (row2.id === toAccount) toRow = row2;
+    }
+
+    // Map to the structure expected by the rest of the code
+    const fromUserAccount = { rows: fromRow ? [fromRow] : [] };
+    const toUserAccount = { rows: toRow ? [toRow] : [] };
+
+    // Check if both accounts exist and ensure the authenticated user owns the fromAccount
+    if (
+      !fromUserAccount.rows[0] ||
+      !toUserAccount.rows[0] ||
+      fromUserAccount.rows[0].user_id !== req.user.id
+    ) {
       await client.query("ROLLBACK");
       client.release();
       return res.status(401).json({

@@ -74,6 +74,7 @@ banking_transaction/
 │
 ├── config/
 │   ├── db.js                       # 🔌 PostgreSQL connection (pg + Drizzle ORM)
+│   ├── redis.js                    # ⚡ Redis connection client
 │   └── schema/
 │       ├── index.js                # 📤 Barrel export for all schemas
 │       ├── users.js                # 👤 Users table definition
@@ -93,7 +94,8 @@ banking_transaction/
 ├── drizzle.config.js               # ⚙️ Drizzle Kit configuration
 │
 ├── middleware/
-│   └── auth.middleware.js          # 🛡️ JWT verification + blacklist check
+│   ├── auth.middleware.js          # 🛡️ JWT verification + blacklist check
+│   └── rateLimiter.middleware.js   # 🚦 Redis rate limiting middleware
 │
 ├── routes/
 │   ├── auth.routes.js              # 🚪 Auth endpoints
